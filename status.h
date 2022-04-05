@@ -67,8 +67,8 @@
 #define RETURN_NOT_OK(s) ARROW_RETURN_NOT_OK(s)
 #endif
 
-#define ARROW_PREDICT_FALSE(x) (__builtin_expect(!!(x), 0))
-#define ARROW_PREDICT_TRUE(x) (__builtin_expect(!!(x), 1))
+#define ARROW_PREDICT_FALSE(x) ([[unlikely]] x)
+#define ARROW_PREDICT_TRUE(x) ([[likely]] x)
 #define ARROW_RESTRICT __restrict
 #define ARROW_NORETURN __attribute__((noreturn))
 #define ARROW_NOINLINE __attribute__((noinline))
@@ -223,7 +223,7 @@ public:
   ~Status() noexcept {
     // ARROW-2400: On certain compilers, splitting off the slow path improves
     // performance significantly.
-    if (ARROW_PREDICT_FALSE(state_ != NULL)) {
+    if (state_ != NULL) [[unlikely]] {
       DeleteState();
     }
   }

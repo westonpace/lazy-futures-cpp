@@ -1,15 +1,21 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -save-temps=obj")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 # set the project name
-project(FutureBenchmarks VERSION 1.0)
+project(FutureBenchmarks VERSION 1.0 LANGUAGES CXX)
+
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    message("Windows build: CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+else()
+    message("Linux build")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+endif()
 
 # specify the C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

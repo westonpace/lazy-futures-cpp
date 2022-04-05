@@ -233,7 +233,7 @@ public:
   /// \param status The non-OK Status object to initialize to.
   Result(const Status &status) noexcept // NOLINT(runtime/explicit)
       : status_(status) {
-    if (ARROW_PREDICT_FALSE(status.ok())) {
+    if (status.ok()) [[unlikely]] {
       internal::DieWithMessage(
           std::string("Constructed with a non-error status: ") +
           status.ToString());
@@ -296,7 +296,7 @@ public:
   ///
   /// \param other The value to copy from.
   Result(const Result &other) noexcept : status_(other.status_) {
-    if (ARROW_PREDICT_TRUE(status_.ok())) {
+    if (status_.ok()) [[likely]] {
       ConstructValue(other.ValueUnsafe());
     }
   }
@@ -311,7 +311,7 @@ public:
                             std::is_constructible<T, const U &>::value &&
                             std::is_convertible<U, T>::value>::type>
   Result(const Result<U> &other) noexcept : status_(other.status_) {
-    if (ARROW_PREDICT_TRUE(status_.ok())) {
+    if (status_.ok()) [[likely]] {
       ConstructValue(other.ValueUnsafe());
     }
   }
@@ -321,12 +321,12 @@ public:
   /// \param other The Result object to copy.
   Result &operator=(const Result &other) noexcept {
     // Check for self-assignment.
-    if (ARROW_PREDICT_FALSE(this == &other)) {
+    if (this == &other) [[unlikely]] {
       return *this;
     }
     Destroy();
     status_ = other.status_;
-    if (ARROW_PREDICT_TRUE(status_.ok())) {
+    if (status_.ok()) [[likely]] {
       ConstructValue(other.ValueUnsafe());
     }
     return *this;
@@ -344,7 +344,7 @@ public:
                             std::is_constructible<T, U &&>::value &&
                             std::is_convertible<U, T>::value>::type>
   Result(Result<U> &&other) noexcept {
-    if (ARROW_PREDICT_TRUE(other.status_.ok())) {
+    if (other.status_.ok()) [[likely]] {
       status_ = std::move(other.status_);
       ConstructValue(other.MoveValueUnsafe());
     } else {
@@ -362,11 +362,11 @@ public:
   /// status.
   Result &operator=(Result &&other) noexcept {
     // Check for self-assignment.
-    if (ARROW_PREDICT_FALSE(this == &other)) {
+    if (this == &other) [[unlikely]] {
       return *this;
     }
     Destroy();
-    if (ARROW_PREDICT_TRUE(other.status_.ok())) {
+    if (other.status_.ok()) [[likely]] {
       status_ = std::move(other.status_);
       ConstructValue(other.MoveValueUnsafe());
     } else {
@@ -379,7 +379,7 @@ public:
 
   /// Compare to another Result.
   bool Equals(const Result &other) const {
-    if (ARROW_PREDICT_TRUE(status_.ok())) {
+    if (status_.ok()) [[likely]] {
       return other.status_.ok() && ValueUnsafe() == other.ValueUnsafe();
     }
     return status_ == other.status_;
@@ -410,7 +410,7 @@ public:
   ///
   /// \return The stored `T` value.
   const T &ValueOrDie() const & {
-    if (ARROW_PREDICT_FALSE(!ok())) {
+    if (!ok()) [[unlikely]] {
       internal::InvalidValueOrDie(status_);
     }
     return ValueUnsafe();
@@ -425,7 +425,7 @@ public:
   ///
   /// \return The stored `T` value.
   T &ValueOrDie() & {
-    if (ARROW_PREDICT_FALSE(!ok())) {
+    if (!ok()) [[unlikely]] {
       internal::InvalidValueOrDie(status_);
     }
     return ValueUnsafe();
@@ -442,7 +442,7 @@ public:
   ///
   /// \return The stored `T` value.
   T ValueOrDie() && {
-    if (ARROW_PREDICT_FALSE(!ok())) {
+    if (!ok()) [[unlikely]] {
       internal::InvalidValueOrDie(status_);
     }
     return MoveValueUnsafe();
@@ -548,7 +548,7 @@ private:
   }
 
   void Destroy() noexcept {
-    if (ARROW_PREDICT_TRUE(status_.ok())) {
+    if (status_.ok()) [[likely]] {
       static_assert(offsetof(Result<T>, status_) == 0,
                     "Status is guaranteed to be at the start of Result<>");
       storage_.destroy();
@@ -612,5 +612,17 @@ template <typename T> struct EnsureResult { using type = Result<T>; };
 template <typename T> struct EnsureResult<Result<T>> {
   using type = Result<T>;
 };
+
+namespace internal {
+
+    struct Empty {
+        static Result<Empty> ToResult(Status s) {
+            if (s.ok()) [[likely]] {
+                return Empty{};
+            }
+            return s;
+        }
+    };
+}
 
 } // namespace futures
